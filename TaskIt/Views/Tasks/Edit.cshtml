@@ -1,0 +1,99 @@
+@model TaskItem
+@{
+    ViewData["Title"] = "Edit Task";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h2 class="card-title">Edit Task</h2>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        <input type="hidden" asp-for="Id" />
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label asp-for="Title" class="form-label">Title</label>
+                                <input asp-for="Title" class="form-control" />
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label asp-for="Description" class="form-label">Description</label>
+                                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="AssignedToId" class="form-label">Assign To</label>
+                                <select asp-for="AssignedToId" asp-items="ViewBag.AssignedToId" class="form-select">
+                                    <option value="">-- Select User --</option>
+                                </select>
+                                <span asp-validation-for="AssignedToId" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Category" class="form-label">Category</label>
+                                <select asp-for="Category" asp-items="ViewBag.Categories" class="form-select">
+                                    <option value="">-- Select Category --</option>
+                                </select>
+                                <span asp-validation-for="Category" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Status" class="form-label">Status</label>
+                                <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<TaskItemStatus>()"></select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Priority" class="form-label">Priority</label>
+                                <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<TaskPriority>()"></select>
+                                <span asp-validation-for="Priority" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label asp-for="DueDate" class="form-label">Due Date</label>
+                                <input asp-for="DueDate" type="date" class="form-control" />
+                                <span asp-validation-for="DueDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="EstimatedHours" class="form-label">Estimated Hours</label>
+                                <input asp-for="EstimatedHours" type="number" class="form-control" min="0" max="1000" />
+                                <span asp-validation-for="EstimatedHours" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ActualHours" class="form-label">Actual Hours</label>
+                                <input asp-for="ActualHours" type="number" class="form-control" min="0" max="1000" />
+                                <span asp-validation-for="ActualHours" class="text-danger"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

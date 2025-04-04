@@ -1,0 +1,116 @@
+@model TaskItem
+@{
+    ViewData["Title"] = "Task Details";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h2 class="card-title mb-0">Task Details</h2>
+                    <div>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3 class="mb-3">@Model.Title</h3>
+                    
+                    <div class="row mb-4">
+                        <div class="col">
+                            <div class="d-flex mb-2">
+                                <div class="text-muted me-3">Status:</div>
+                                @{
+                                    var statusClass = Model.Status switch
+                                    {
+                                        TaskItemStatus.ToDo => "bg-secondary",
+                                        TaskItemStatus.InProgress => "bg-primary",
+                                        TaskItemStatus.OnHold => "bg-warning",
+                                        TaskItemStatus.Completed => "bg-success",
+                                        TaskItemStatus.Cancelled => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @statusClass">@Model.Status</span>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <div class="text-muted me-3">Priority:</div>
+                                @{
+                                    var priorityClass = Model.Priority switch
+                                    {
+                                        TaskPriority.Low => "bg-success",
+                                        TaskPriority.Medium => "bg-info",
+                                        TaskPriority.High => "bg-warning",
+                                        TaskPriority.Critical => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @priorityClass">@Model.Priority</span>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <div class="text-muted me-3">Category:</div>
+                                <div>@(string.IsNullOrEmpty(Model.Category) ? "None" : Model.Category)</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="d-flex mb-2">
+                                <div class="text-muted me-3">Created By:</div>
+                                <div>@(Model.CreatedBy?.FullName ?? "Unknown")</div>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <div class="text-muted me-3">Assigned To:</div>
+                                <div>@(Model.AssignedTo?.FullName ?? "Unassigned")</div>
+                            </div>
+                            <div class="d-flex mb-2">
+                                <div class="text-muted me-3">Due Date:</div>
+                                <div>@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("MM/dd/yyyy") : "No due date")</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col">
+                            <h5>Description</h5>
+                            <p class="border rounded p-3 bg-light">@(string.IsNullOrEmpty(Model.Description) ? "No description provided." : Model.Description)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Created At</h6>
+                                    <p class="card-text">@Model.CreatedAt.ToLocalTime().ToString("MM/dd/yyyy HH:mm")</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Updated At</h6>
+                                    <p class="card-text">@(Model.UpdatedAt.HasValue ? Model.UpdatedAt.Value.ToLocalTime().ToString("MM/dd/yyyy HH:mm") : "Never")</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Hours</h6>
+                                    <p class="card-text">
+                                        Estimated: @(Model.EstimatedHours.HasValue ? Model.EstimatedHours.Value.ToString() : "-")<br>
+                                        Actual: @(Model.ActualHours.HasValue ? Model.ActualHours.Value.ToString() : "-")
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,62 @@
+@model TaskIt.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h2 class="text-center">Log in</h2>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Login" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                        
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" placeholder="Email address" />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Password" />
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label">Remember me</label>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Log in
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p>
+                                Don't have an account?
+                                <a asp-action="Register">Register now</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

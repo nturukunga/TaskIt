@@ -1,0 +1,134 @@
+html {
+  font-size: 14px;
+  position: relative;
+  min-height: 100%;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  margin-bottom: 60px;
+  background-color: #f8f9fa;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  white-space: nowrap;
+  line-height: 60px;
+  background-color: #fff;
+}
+
+/* Card styling */
+.card {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0,0,0,0.125);
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+
+/* Task priority colors */
+.priority-low {
+  background-color: #28a745;
+}
+
+.priority-medium {
+  background-color: #17a2b8;
+}
+
+.priority-high {
+  background-color: #ffc107;
+}
+
+.priority-critical {
+  background-color: #dc3545;
+}
+
+/* Notification badge */
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(25%, -25%);
+}
+
+/* Dashboard specific styles */
+.dashboard-stat-card {
+  transition: transform 0.3s;
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Form improvements */
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Button improvements */
+.btn {
+  border-radius: 0.25rem;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Task list hover effect */
+.table-hover tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Navbar customization */
+.navbar-dark.bg-primary {
+  background-color: #0d6efd !important;
+}
+
+/* Dashboard charts */
+.chart-container {
+  position: relative;
+  margin: auto;
+  height: 250px;
+}

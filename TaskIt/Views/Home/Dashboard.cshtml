@@ -1,0 +1,225 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    var taskStats = ViewBag.TaskStatistics;
+    var recentTasks = ViewBag.RecentTasks;
+    var recentNotifications = ViewBag.RecentNotifications;
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Dashboard</h1>
+        <a asp-controller="Tasks" asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Create New Task
+        </a>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Tasks Assigned</h5>
+                    <h2 class="display-4">@taskStats.TotalTasks</h2>
+                    <p class="card-text">
+                        Completed: @taskStats.CompletedTasks<br/>
+                        In Progress: @taskStats.InProgressTasks<br/>
+                        Pending: @taskStats.PendingTasks
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">High Priority Tasks</h5>
+                    <h2 class="display-4">@taskStats.HighPriorityTasks</h2>
+                    <p class="card-text">
+                        Tasks that need immediate attention
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Overdue Tasks</h5>
+                    <h2 class="display-4">@taskStats.OverdueTasks</h2>
+                    <p class="card-text">
+                        Tasks that have passed their deadline
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Task Progress</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="taskProgressChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Tasks</h5>
+                    <a asp-controller="Tasks" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (recentTasks != null && recentTasks.Count > 0)
+                            {
+                                @foreach (var task in recentTasks)
+                                {
+                                    <tr>
+                                        <td>@task.Title</td>
+                                        <td>
+                                            @{
+                                                var statusClass = task.Status switch
+                                                {
+                                                    TaskItemStatus.ToDo => "bg-secondary",
+                                                    TaskItemStatus.InProgress => "bg-primary",
+                                                    TaskItemStatus.OnHold => "bg-warning",
+                                                    TaskItemStatus.Completed => "bg-success",
+                                                    TaskItemStatus.Cancelled => "bg-danger",
+                                                    _ => "bg-secondary"
+                                                };
+                                            }
+                                            <span class="badge @statusClass">@task.Status</span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var priorityClass = task.Priority switch
+                                                {
+                                                    TaskPriority.Low => "bg-success",
+                                                    TaskPriority.Medium => "bg-info",
+                                                    TaskPriority.High => "bg-warning",
+                                                    TaskPriority.Critical => "bg-danger",
+                                                    _ => "bg-secondary"
+                                                };
+                                            }
+                                            <span class="badge @priorityClass">@task.Priority</span>
+                                        </td>
+                                        <td>@(task.DueDate.HasValue ? task.DueDate.Value.ToString("MM/dd/yyyy") : "-")</td>
+                                        <td>
+                                            <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">No tasks found</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Notifications</h5>
+                    <a asp-controller="Notifications" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    @if (recentNotifications != null && recentNotifications.Count > 0)
+                    {
+                        @foreach (var notification in recentNotifications)
+                        {
+                            var bgClass = notification.IsRead ? "" : "bg-light";
+                            <a href="@notification.ActionUrl" class="list-group-item list-group-item-action @bgClass">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@notification.Message</h6>
+                                    <small>@notification.CreatedAt.ToLocalTime().ToString("MM/dd HH:mm")</small>
+                                </div>
+                                <small class="text-muted">
+                                    @{
+                                        var iconClass = notification.Type switch
+                                        {
+                                            NotificationType.TaskAssigned => "bi-person-plus",
+                                            NotificationType.TaskUpdated => "bi-pencil",
+                                            NotificationType.TaskDueSoon => "bi-clock",
+                                            NotificationType.TaskOverdue => "bi-exclamation-triangle",
+                                            NotificationType.TaskCompleted => "bi-check-circle",
+                                            NotificationType.UserMention => "bi-at",
+                                            NotificationType.SystemAlert => "bi-info-circle",
+                                            _ => "bi-bell"
+                                        };
+                                    }
+                                    <i class="bi @iconClass me-1"></i>@notification.Type
+                                </small>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="list-group-item text-center py-3">No notifications found</div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Task Status Overview</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="taskStatusChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Task Status Chart
+            const statusLabels = ['To Do', 'In Progress', 'On Hold', 'Completed', 'Cancelled'];
+            const statusData = [
+                @taskStats.PendingTasks,
+                @taskStats.InProgressTasks,
+                0, // On Hold not provided in the data
+                @taskStats.CompletedTasks,
+                0  // Cancelled not provided in the data
+            ];
+            const statusColors = ['#6c757d', '#0d6efd', '#ffc107', '#198754', '#dc3545'];
+            
+            initTaskItemStatusChart('taskStatusChart', statusLabels, statusData, statusColors);
+            
+            // Task Progress Chart
+            const progressData = {
+                labels: ['Completed', 'In Progress', 'To Do', 'Overdue'],
+                values: [
+                    @taskStats.CompletedTasks,
+                    @taskStats.InProgressTasks,
+                    @taskStats.PendingTasks,
+                    @taskStats.OverdueTasks
+                ]
+            };
+            
+            initTaskProgressChart('taskProgressChart', progressData);
+        });
+    </script>
+}

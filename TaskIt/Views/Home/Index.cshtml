@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold">Welcome to TaskIt</h1>
+                <p class="lead text-muted">A distributed task management system that helps teams collaborate efficiently</p>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h2>Manage Tasks Effectively</h2>
+                            <p class="text-muted">Create, assign, and track tasks across multiple clients with ease.</p>
+                            
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <a asp-controller="Home" asp-action="Dashboard" class="btn btn-primary">
+                                    <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-controller="Account" asp-action="Login" class="btn btn-primary me-2">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                                </a>
+                                <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary">
+                                    <i class="bi bi-person-plus me-2"></i>Register
+                                </a>
+                            }
+                        </div>
+                        <div class="col-md-6 d-none d-md-block text-center">
+                            <svg width="200" height="200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="mt-3">
+                                <path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                                <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="bi bi-list-task text-primary" style="font-size: 2rem;"></i>
+                            <h5 class="card-title mt-3">Task Management</h5>
+                            <p class="card-text text-muted">Create and organize tasks with priorities and deadlines</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                            <h5 class="card-title mt-3">Team Collaboration</h5>
+                            <p class="card-text text-muted">Assign tasks to team members and track progress</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="bi bi-bell text-primary" style="font-size: 2rem;"></i>
+                            <h5 class="card-title mt-3">Notifications</h5>
+                            <p class="card-text text-muted">Stay updated with task assignments and status changes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

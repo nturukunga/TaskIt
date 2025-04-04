@@ -1,0 +1,214 @@
+@model PaginatedList<TaskItem>
+@{
+    ViewData["Title"] = "Tasks";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Tasks</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Create New Task
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form asp-action="Index" method="get" class="row g-3 mb-4">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search tasks..." 
+                               name="SearchString" value="@ViewData["CurrentFilter"]">
+                        <button class="btn btn-outline-primary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a asp-action="Index" class="btn btn-outline-secondary">Clear Filters</a>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewData["TitleSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
+                                    Title
+                                    @if (ViewData["CurrentSort"].ToString() == "")
+                                    {
+                                        <i class="bi bi-arrow-down-short"></i>
+                                    }
+                                    else if (ViewData["CurrentSort"].ToString() == "title_desc")
+                                    {
+                                        <i class="bi bi-arrow-up-short"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewData["StatusSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
+                                    Status
+                                    @if (ViewData["CurrentSort"].ToString() == "status")
+                                    {
+                                        <i class="bi bi-arrow-down-short"></i>
+                                    }
+                                    else if (ViewData["CurrentSort"].ToString() == "status_desc")
+                                    {
+                                        <i class="bi bi-arrow-up-short"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewData["PrioritySortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
+                                    Priority
+                                    @if (ViewData["CurrentSort"].ToString() == "priority")
+                                    {
+                                        <i class="bi bi-arrow-down-short"></i>
+                                    }
+                                    else if (ViewData["CurrentSort"].ToString() == "priority_desc")
+                                    {
+                                        <i class="bi bi-arrow-up-short"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>
+                                <a asp-action="Index" asp-route-sortOrder="@ViewData["DueDateSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
+                                    Due Date
+                                    @if (ViewData["CurrentSort"].ToString() == "duedate")
+                                    {
+                                        <i class="bi bi-arrow-down-short"></i>
+                                    }
+                                    else if (ViewData["CurrentSort"].ToString() == "duedate_desc")
+                                    {
+                                        <i class="bi bi-arrow-up-short"></i>
+                                    }
+                                </a>
+                            </th>
+                            <th>Assigned To</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model != null && Model.Count > 0)
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Title</td>
+                                <td>
+                                    @{
+                                        var statusClass = item.Status switch
+                                        {
+                                            TaskItemStatus.ToDo => "bg-secondary",
+                                            TaskItemStatus.InProgress => "bg-primary",
+                                            TaskItemStatus.OnHold => "bg-warning",
+                                            TaskItemStatus.Completed => "bg-success",
+                                            TaskItemStatus.Cancelled => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @statusClass">@item.Status</span>
+                                </td>
+                                <td>
+                                    @{
+                                        var priorityClass = item.Priority switch
+                                        {
+                                            TaskPriority.Low => "bg-success",
+                                            TaskPriority.Medium => "bg-info",
+                                            TaskPriority.High => "bg-warning",
+                                            TaskPriority.Critical => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @priorityClass">@item.Priority</span>
+                                </td>
+                                <td>
+                                    @if (item.DueDate.HasValue)
+                                    {
+                                        @item.DueDate.Value.ToString("MM/dd/yyyy")
+                                        
+                                        @if (item.DueDate.Value.Date < DateTime.Today && item.Status != TaskItemStatus.Completed)
+                                        {
+                                            <span class="badge bg-danger ms-1">Overdue</span>
+                                        }
+                                        else if (item.DueDate.Value.Date == DateTime.Today && item.Status != TaskItemStatus.Completed)
+                                        {
+                                            <span class="badge bg-warning ms-1">Today</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.AssignedTo != null)
+                                    {
+                                        @item.AssignedTo.FullName
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Unassigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center p-4">
+                                <div class="alert alert-info mb-0">
+                                    No tasks found. <a asp-action="Create">Create a new task</a> to get started.
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+
+            @{
+                var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+                var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+            }
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <a asp-action="Index"
+                       asp-route-sortOrder="@ViewData["CurrentSort"]"
+                       asp-route-pageNumber="@(Model.PageIndex - 1)"
+                       asp-route-currentFilter="@ViewData["CurrentFilter"]"
+                       class="btn btn-outline-primary @prevDisabled">
+                        <i class="bi bi-arrow-left me-1"></i>Previous
+                    </a>
+                </div>
+                <div>
+                    Page @Model.PageIndex of @Model.TotalPages
+                </div>
+                <div>
+                    <a asp-action="Index"
+                       asp-route-sortOrder="@ViewData["CurrentSort"]"
+                       asp-route-pageNumber="@(Model.PageIndex + 1)"
+                       asp-route-currentFilter="@ViewData["CurrentFilter"]"
+                       class="btn btn-outline-primary @nextDisabled">
+                        Next<i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

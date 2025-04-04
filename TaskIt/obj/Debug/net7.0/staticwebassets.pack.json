@@ -1,0 +1,33 @@
+{
+  "Files": [
+    {
+      "Id": "/home/runner/workspace/TaskIt/wwwroot/css/site.css",
+      "PackagePath": "staticwebassets/css/site.css"
+    },
+    {
+      "Id": "/home/runner/workspace/TaskIt/wwwroot/js/dashboard.js",
+      "PackagePath": "staticwebassets/js/dashboard.js"
+    },
+    {
+      "Id": "/home/runner/workspace/TaskIt/wwwroot/js/site.js",
+      "PackagePath": "staticwebassets/js/site.js"
+    },
+    {
+      "Id": "obj/Debug/net7.0/staticwebassets/msbuild.TaskIt.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net7.0/staticwebassets/msbuild.build.TaskIt.props",
+      "PackagePath": "build\\TaskIt.props"
+    },
+    {
+      "Id": "obj/Debug/net7.0/staticwebassets/msbuild.buildMultiTargeting.TaskIt.props",
+      "PackagePath": "buildMultiTargeting\\TaskIt.props"
+    },
+    {
+      "Id": "obj/Debug/net7.0/staticwebassets/msbuild.buildTransitive.TaskIt.props",
+      "PackagePath": "buildTransitive\\TaskIt.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
