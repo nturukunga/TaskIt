@@ -18,8 +18,58 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-    $"Host={Environment.GetEnvironmentVariable("PGHOST")};Port={Environment.GetEnvironmentVariable("PGPORT")};Database={Environment.GetEnvironmentVariable("PGDATABASE")};Username={Environment.GetEnvironmentVariable("PGUSER")};Password={Environment.GetEnvironmentVariable("PGPASSWORD")}";
+string connectionString;
+string? databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+// Parse DATABASE_URL if available (from environment variables)
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Convert from postgresql:// URL format to Npgsql connection string
+    try {
+        var uri = new Uri(databaseUrl);
+        var userInfo = uri.UserInfo.Split(':');
+        
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var username = userInfo[0];
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+        
+        // Add SSL mode if in the query string
+        bool useSsl = uri.Query.Contains("sslmode=require");
+        
+        connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
+        if (useSsl)
+        {
+            connectionString += ";SSL Mode=Require;Trust Server Certificate=true";
+        }
+        
+        Log.Information($"Using DATABASE_URL environment variable for database connection");
+    }
+    catch (Exception ex)
+    {
+        Log.Warning($"Failed to parse DATABASE_URL: {ex.Message}. Falling back to individual connection parameters.");
+        // Fall back to individual environment variables
+        connectionString = $"Host={Environment.GetEnvironmentVariable("PGHOST")};Port={Environment.GetEnvironmentVariable("PGPORT")};Database={Environment.GetEnvironmentVariable("PGDATABASE")};Username={Environment.GetEnvironmentVariable("PGUSER")};Password={Environment.GetEnvironmentVariable("PGPASSWORD")}";
+    }
+}
+else
+{
+    // Use individual environment variables
+    connectionString = $"Host={Environment.GetEnvironmentVariable("PGHOST")};Port={Environment.GetEnvironmentVariable("PGPORT")};Database={Environment.GetEnvironmentVariable("PGDATABASE")};Username={Environment.GetEnvironmentVariable("PGUSER")};Password={Environment.GetEnvironmentVariable("PGPASSWORD")}";
+}
+
+// Override the connection string from appsettings only if environment variables are not available
+if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("null"))
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+
+// Log the connection string setup (without the password)
+string sanitizedConnectionString = connectionString.Contains("Password=") ? 
+    connectionString.Substring(0, connectionString.IndexOf("Password=")) + "Password=***" : 
+    connectionString;
+Log.Information($"Database connection configured: {sanitizedConnectionString}");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
