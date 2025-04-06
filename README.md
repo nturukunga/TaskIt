@@ -101,6 +101,6 @@ Open GitHub Issue
 
 Email: info.native254@gmail.com
 
-**Crafted with 🧠 and ☕ by Howie AI ofcourse**  
+**Crafted with 🧠 and ☕ by Howie and AI ofcourse**  
 [![Twitter](https://img.shields.io/badge/-@Howie251-1DA1F2?logo=twitter&logoColor=white)](https://twitter.com/Howie251) 
 [![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github&logoColor=white)](https://github.com/nturukunga)
