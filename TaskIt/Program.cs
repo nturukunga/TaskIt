@@ -50,19 +50,52 @@ if (!string.IsNullOrEmpty(databaseUrl))
     {
         Log.Warning($"Failed to parse DATABASE_URL: {ex.Message}. Falling back to individual connection parameters.");
         // Fall back to individual environment variables
-        connectionString = $"Host={Environment.GetEnvironmentVariable("PGHOST")};Port={Environment.GetEnvironmentVariable("PGPORT")};Database={Environment.GetEnvironmentVariable("PGDATABASE")};Username={Environment.GetEnvironmentVariable("PGUSER")};Password={Environment.GetEnvironmentVariable("PGPASSWORD")}";
+        string envHost = Environment.GetEnvironmentVariable("PGHOST");
+        string envPort = Environment.GetEnvironmentVariable("PGPORT");
+        string envDatabase = Environment.GetEnvironmentVariable("PGDATABASE");
+        string envUser = Environment.GetEnvironmentVariable("PGUSER");
+        string envPassword = Environment.GetEnvironmentVariable("PGPASSWORD");
+
+        // Only use environment variables if all necessary ones are present
+        if (!string.IsNullOrEmpty(envHost) && !string.IsNullOrEmpty(envDatabase) && !string.IsNullOrEmpty(envUser))
+        {
+            string port = !string.IsNullOrEmpty(envPort) ? envPort : "5432";
+            connectionString = $"Host={envHost};Port={port};Database={envDatabase};Username={envUser};Password={envPassword ?? ""}";
+        }
+        else
+        {
+            // If environment variables are missing, use an empty string (will be replaced with appsettings value)
+            connectionString = "";
+        }
     }
 }
 else
 {
     // Use individual environment variables
-    connectionString = $"Host={Environment.GetEnvironmentVariable("PGHOST")};Port={Environment.GetEnvironmentVariable("PGPORT")};Database={Environment.GetEnvironmentVariable("PGDATABASE")};Username={Environment.GetEnvironmentVariable("PGUSER")};Password={Environment.GetEnvironmentVariable("PGPASSWORD")}";
+    string envHost = Environment.GetEnvironmentVariable("PGHOST");
+    string envPort = Environment.GetEnvironmentVariable("PGPORT");
+    string envDatabase = Environment.GetEnvironmentVariable("PGDATABASE");
+    string envUser = Environment.GetEnvironmentVariable("PGUSER");
+    string envPassword = Environment.GetEnvironmentVariable("PGPASSWORD");
+
+    // Only use environment variables if all necessary ones are present
+    if (!string.IsNullOrEmpty(envHost) && !string.IsNullOrEmpty(envDatabase) && !string.IsNullOrEmpty(envUser))
+    {
+        string port = !string.IsNullOrEmpty(envPort) ? envPort : "5432";
+        connectionString = $"Host={envHost};Port={port};Database={envDatabase};Username={envUser};Password={envPassword ?? ""}";
+    }
+    else
+    {
+        // If environment variables are missing, don't build a partial connection string
+        connectionString = "";
+    }
 }
 
-// Override the connection string from appsettings only if environment variables are not available
-if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("null"))
+// Override the connection string from appsettings only if environment variables are properly configured
+if (string.IsNullOrEmpty(connectionString))
 {
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    Log.Information("Using connection string from appsettings.json");
 }
 
 // Log the connection string setup (without the password)
