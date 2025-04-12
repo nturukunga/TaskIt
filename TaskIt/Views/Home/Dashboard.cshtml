@@ -1,8 +1,8 @@
 @{
     ViewData["Title"] = "Dashboard";
-    var taskStats = ViewBag.TaskStatistics;
-    var recentTasks = ViewBag.RecentTasks;
-    var recentNotifications = ViewBag.RecentNotifications;
+    var taskStats = ViewBag.TaskStatistics ?? new { TotalTasks = 0, CompletedTasks = 0, PendingTasks = 0, InProgressTasks = 0, OverdueTasks = 0, HighPriorityTasks = 0 };
+    var recentTasks = ViewBag.RecentTasks as List<TaskIt.Models.TaskItem> ?? new List<TaskIt.Models.TaskItem>();
+    var recentNotifications = ViewBag.RecentNotifications as List<TaskIt.Models.Notification> ?? new List<TaskIt.Models.Notification>();
 }
 
 <div class="container">
@@ -84,10 +84,10 @@
                                 @foreach (var task in recentTasks)
                                 {
                                     <tr>
-                                        <td>@task.Title</td>
+                                        <td>@(task?.Title ?? "No Title")</td>
                                         <td>
                                             @{
-                                                var statusClass = task.Status switch
+                                                var statusClass = (task != null) ? task.Status switch
                                                 {
                                                     TaskItemStatus.ToDo => "bg-secondary",
                                                     TaskItemStatus.InProgress => "bg-primary",
@@ -95,31 +95,38 @@
                                                     TaskItemStatus.Completed => "bg-success",
                                                     TaskItemStatus.Cancelled => "bg-danger",
                                                     _ => "bg-secondary"
-                                                };
+                                                } : "bg-secondary";
                                             }
-                                            <span class="badge @statusClass">@task.Status</span>
+                                            <span class="badge @statusClass">@(task?.Status.ToString() ?? "Unknown")</span>
                                         </td>
                                         <td>
                                             @{
-                                                var priorityClass = task.Priority switch
+                                                var priorityClass = (task != null) ? task.Priority switch
                                                 {
                                                     TaskPriority.Low => "bg-success",
                                                     TaskPriority.Medium => "bg-info",
-                                                    TaskPriority.High => "bg-warning",
+                                                    TaskPriority.High => "bg-warning", 
                                                     TaskPriority.Critical => "bg-danger",
                                                     _ => "bg-secondary"
-                                                };
+                                                } : "bg-secondary";
                                             }
-                                            <span class="badge @priorityClass">@task.Priority</span>
+                                            <span class="badge @priorityClass">@(task?.Priority.ToString() ?? "Unknown")</span>
                                         </td>
-                                        <td>@(task.DueDate.HasValue ? task.DueDate.Value.ToString("MM/dd/yyyy") : "-")</td>
+                                        <td>@(task?.DueDate.HasValue == true ? task.DueDate.Value.ToString("MM/dd/yyyy") : "-")</td>
                                         <td>
-                                            <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
+                                            @if (task?.Id > 0)
+                                            {
+                                                <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            }
+                                            else 
+                                            {
+                                                <span class="text-muted">No actions</span>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -146,15 +153,15 @@
                     {
                         @foreach (var notification in recentNotifications)
                         {
-                            var bgClass = notification.IsRead ? "" : "bg-light";
-                            <a href="@notification.ActionUrl" class="list-group-item list-group-item-action @bgClass">
+                            var bgClass = notification?.IsRead == true ? "" : "bg-light";
+                            <a href="@(notification?.ActionUrl ?? "#")" class="list-group-item list-group-item-action @bgClass">
                                 <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">@notification.Message</h6>
-                                    <small>@notification.CreatedAt.ToLocalTime().ToString("MM/dd HH:mm")</small>
+                                    <h6 class="mb-1">@(notification?.Message ?? "No message")</h6>
+                                    <small>@(notification?.CreatedAt.ToLocalTime().ToString("MM/dd HH:mm") ?? "-")</small>
                                 </div>
                                 <small class="text-muted">
                                     @{
-                                        var iconClass = notification.Type switch
+                                        var iconClass = notification?.Type switch
                                         {
                                             NotificationType.TaskAssigned => "bi-person-plus",
                                             NotificationType.TaskUpdated => "bi-pencil",
@@ -164,9 +171,9 @@
                                             NotificationType.UserMention => "bi-at",
                                             NotificationType.SystemAlert => "bi-info-circle",
                                             _ => "bi-bell"
-                                        };
+                                        } ?? "bi-bell";
                                     }
-                                    <i class="bi @iconClass me-1"></i>@notification.Type
+                                    <i class="bi @iconClass me-1"></i>@(notification?.Type.ToString() ?? "Unknown")
                                 </small>
                             </a>
                         }

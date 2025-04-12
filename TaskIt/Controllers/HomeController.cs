@@ -37,22 +37,36 @@ namespace TaskIt.Controllers
             
             try
             {
-                // DEBUG: Log all users
-                var allUsers = await _context.Users.ToListAsync();
-                foreach (var user in allUsers)
+                // Make sure we have a valid user ID
+                if (string.IsNullOrEmpty(userId))
                 {
-                    _logger.LogInformation("User: {UserName}, ID: {UserId}", user.UserName, user.Id);
+                    _logger.LogWarning("User ID is null or empty in Dashboard!");
+                    userId = User.Identity?.Name ?? "unknown";
                 }
                 
-                // Get all tasks directly from database
-                var allTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
+                // Get all tasks directly from database with includes
+                var allTasks = await _context.Tasks
+                    .IgnoreQueryFilters()
+                    .Include(t => t.AssignedTo)
+                    .Include(t => t.CreatedBy)
+                    .ToListAsync();
+                
                 _logger.LogInformation("Total tasks in database: {Count}", allTasks.Count);
                 
-                // Get recent tasks
-                var recentTasks = await _context.Tasks.IgnoreQueryFilters()
+                // Get recent tasks - make sure to include related data
+                var recentTasks = await _context.Tasks
+                    .IgnoreQueryFilters()
+                    .Include(t => t.AssignedTo)
+                    .Include(t => t.CreatedBy)
                     .OrderByDescending(t => t.CreatedAt)
                     .Take(5)
                     .ToListAsync();
+
+                // Ensure we have at least non-null items
+                if (recentTasks == null)
+                {
+                    recentTasks = new List<TaskItem>();
+                }
 
                 // Prepare task statistics with null checks
                 var taskStatistics = new
@@ -74,7 +88,7 @@ namespace TaskIt.Controllers
 
                 ViewBag.TaskStatistics = taskStatistics;
                 ViewBag.RecentTasks = recentTasks;
-                ViewBag.RecentNotifications = recentNotifications;
+                ViewBag.RecentNotifications = recentNotifications ?? new List<Notification>();
 
                 return View();
             }
