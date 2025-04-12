@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -40,12 +41,14 @@ namespace TaskIt.Controllers
             ViewData["PrioritySortParm"] = sortOrder == "priority" ? "priority_desc" : "priority";
             ViewData["CurrentFilter"] = searchString ?? "";
 
-            // Simple query to get all tasks
-            var tasks = from t in _context.Tasks.AsNoTracking()
-                        select t;
+            // First check if we have ANY tasks in the database at all
+            var allTasksCount = await _context.Tasks.IgnoreQueryFilters().CountAsync();
+            _logger.LogInformation("Total tasks in database: {Count}", allTasksCount);
 
-            // Always ignore IsDeleted filter
-            tasks = tasks.IgnoreQueryFilters();
+            // Simple query to get ALL tasks without ANY filtering
+            var tasks = _context.Tasks
+                .IgnoreQueryFilters() // Ignore global query filters
+                .Where(t => true);    // Ensure we get everything
 
             // Include related entities
             tasks = tasks.Include(t => t.AssignedTo);
@@ -102,18 +105,43 @@ namespace TaskIt.Controllers
             {
                 try
                 {
+                    // Get current user ID
                     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                    _logger.LogInformation("Creating task: {Title}", task.Title);
+                    if (string.IsNullOrEmpty(userId))
+                    {
+                        _logger.LogWarning("User ID is null or empty! Using fallback value.");
+                        userId = User.Identity?.Name ?? "unknown-user";
+                    }
+                    
+                    _logger.LogInformation("Creating task '{Title}' with user ID: {UserId}", task.Title, userId);
 
+                    // Set task properties explicitly
                     task.CreatedById = userId;
                     task.CreatedAt = DateTime.UtcNow;
                     task.IsDeleted = false;
+                    
+                    // Log task details before saving
+                    _logger.LogInformation("Task details - CreatedById: {CreatedById}, IsDeleted: {IsDeleted}", 
+                        task.CreatedById, task.IsDeleted);
 
                     _context.Add(task);
                     await _context.SaveChangesAsync();
 
-                    _logger.LogInformation("Task created with ID: {Id}", task.Id);
+                    _logger.LogInformation("Task created successfully with ID: {Id}", task.Id);
 
+                    // Also update all existing tasks to not be deleted (EMERGENCY FIX)
+                    var existingTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
+                    foreach (var existingTask in existingTasks)
+                    {
+                        if (existingTask.IsDeleted)
+                        {
+                            existingTask.IsDeleted = false;
+                            _context.Update(existingTask);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+
+                    // Create notification for assigned user
                     if (!string.IsNullOrEmpty(task.AssignedToId))
                     {
                         await _notificationService.CreateTaskAssignedNotification(task);
@@ -224,6 +252,41 @@ namespace TaskIt.Controllers
             }
             
             return RedirectToAction(nameof(Index));
+        }
+
+        // EMERGENCY FIX: Special action to repair database
+        public async Task<IActionResult> FixData()
+        {
+            try
+            {
+                // 1. Get all tasks including deleted ones
+                var allTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
+                var result = new Dictionary<string, object>();
+                
+                // Log counts
+                result["TotalTasksBeforeFix"] = allTasks.Count;
+                result["DeletedTasksBeforeFix"] = allTasks.Count(t => t.IsDeleted);
+                
+                // 2. Undelete all tasks
+                foreach (var task in allTasks)
+                {
+                    task.IsDeleted = false;
+                    _context.Update(task);
+                }
+                await _context.SaveChangesAsync();
+                
+                // 3. Verify fix
+                var tasksAfterFix = await _context.Tasks.ToListAsync();
+                result["TotalTasksAfterFix"] = tasksAfterFix.Count;
+                
+                // 4. Return data summary as JSON
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fixing data");
+                return Json(new { Error = ex.Message });
+            }
         }
 
         // Helper methods

@@ -504,4 +504,3 @@ E:\Projects\TaskIt\TaskIt\obj\Debug\net7.0\refint\TaskIt.dll
 E:\Projects\TaskIt\TaskIt\obj\Debug\net7.0\TaskIt.pdb
 E:\Projects\TaskIt\TaskIt\obj\Debug\net7.0\TaskIt.genruntimeconfig.cache
 E:\Projects\TaskIt\TaskIt\obj\Debug\net7.0\ref\TaskIt.dll
-E:\Projects\TaskIt\TaskIt\obj\Debug\net7.0\staticwebassets.upToDateCheck.txt
