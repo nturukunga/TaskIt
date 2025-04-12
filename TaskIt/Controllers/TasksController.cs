@@ -12,6 +12,7 @@ using TaskIt.Data;
 using TaskIt.DTOs;
 using TaskIt.Models;
 using TaskIt.Services;
+using System.Security.Claims;
 
 namespace TaskIt.Controllers
 {
@@ -55,8 +56,8 @@ namespace TaskIt.Controllers
 
             ViewData["CurrentFilter"] = searchString;
 
-            var userId = User.Identity?.Name;
-            var tasks = _context.Tasks.Include(t => t.AssignedTo).Include(t => t.CreatedBy)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var tasks = _context.Tasks.IgnoreQueryFilters().Include(t => t.AssignedTo).Include(t => t.CreatedBy)
                 .Where(t => t.AssignedToId == userId || t.CreatedById == userId);
 
             if (!String.IsNullOrEmpty(searchString))
@@ -121,7 +122,7 @@ namespace TaskIt.Controllers
             {
                 try
                 {
-                    taskItem.CreatedById = User.Identity?.Name;
+                    taskItem.CreatedById = User.FindFirstValue(ClaimTypes.NameIdentifier);
                     taskItem.CreatedAt = DateTime.UtcNow;
                     
                     _context.Add(taskItem);
