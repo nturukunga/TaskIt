@@ -57,8 +57,18 @@ namespace TaskIt.Controllers
             ViewData["CurrentFilter"] = searchString;
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var tasks = _context.Tasks.IgnoreQueryFilters().Include(t => t.AssignedTo).Include(t => t.CreatedBy)
+            _logger.LogInformation($"Tasks Index - Current user ID: {userId}");
+            
+            // Get all tasks without any filters first to debug
+            var allTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
+            _logger.LogInformation($"Total tasks in database (ignoring filters): {allTasks.Count}");
+            
+            var tasks = _context.Tasks.IgnoreQueryFilters()
+                .Include(t => t.AssignedTo)
+                .Include(t => t.CreatedBy)
                 .Where(t => t.AssignedToId == userId || t.CreatedById == userId);
+                
+            _logger.LogInformation($"Tasks matching current user: {tasks.Count()}");
 
             if (!String.IsNullOrEmpty(searchString))
             {
@@ -122,11 +132,21 @@ namespace TaskIt.Controllers
             {
                 try
                 {
-                    taskItem.CreatedById = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    // Get user ID from claims
+                    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    
+                    // Add debug logging
+                    _logger.LogInformation($"Creating task with Title: {taskItem.Title}");
+                    _logger.LogInformation($"Current user ID: {userId}");
+                    
+                    taskItem.CreatedById = userId;
                     taskItem.CreatedAt = DateTime.UtcNow;
+                    taskItem.IsDeleted = false; // Explicitly set IsDeleted to false
                     
                     _context.Add(taskItem);
                     await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"Task created successfully with ID: {taskItem.Id}");
 
                     // Create notification for assigned user
                     if (!string.IsNullOrEmpty(taskItem.AssignedToId))
