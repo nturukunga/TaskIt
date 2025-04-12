@@ -59,16 +59,12 @@ namespace TaskIt.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             _logger.LogInformation($"Tasks Index - Current user ID: {userId}");
             
-            // Get all tasks without any filters first to debug
-            var allTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
-            _logger.LogInformation($"Total tasks in database (ignoring filters): {allTasks.Count}");
-            
+            // EMERGENCY FIX: Show all tasks without filtering by user
             var tasks = _context.Tasks.IgnoreQueryFilters()
                 .Include(t => t.AssignedTo)
-                .Include(t => t.CreatedBy)
-                .Where(t => t.AssignedToId == userId || t.CreatedById == userId);
+                .Include(t => t.CreatedBy);
                 
-            _logger.LogInformation($"Tasks matching current user: {tasks.Count()}");
+            _logger.LogInformation($"Total tasks retrieved: {tasks.Count()}");
 
             if (!String.IsNullOrEmpty(searchString))
             {
