@@ -128,6 +128,22 @@ namespace TaskIt.Controllers
                         }
                     }
                     
+                    // Validate that AssignedToId exists in the Users table if it's not null
+                    if (!string.IsNullOrEmpty(task.AssignedToId))
+                    {
+                        var userExists = await _context.Users.AnyAsync(u => u.Id == task.AssignedToId);
+                        if (!userExists)
+                        {
+                            _logger.LogWarning("Invalid AssignedToId: {AssignedToId} - User doesn't exist", task.AssignedToId);
+                            ModelState.AddModelError("AssignedToId", "The selected user doesn't exist in the database.");
+                            
+                            var users = _context.Users.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
+                            ViewData["AssignedToId"] = new SelectList(users, "Id", "FullName", task.AssignedToId);
+                            ViewData["Categories"] = GetCategoriesSelectList();
+                            return View(task);
+                        }
+                    }
+                    
                     // Set task properties explicitly
                     task.CreatedById = userId;
                     task.CreatedAt = DateTime.UtcNow;
@@ -202,38 +218,108 @@ namespace TaskIt.Controllers
         {
             if (id != task.Id) return NotFound();
 
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (ModelState.IsValid)
                 {
-                    var original = await _context.Tasks.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
-                    if (original == null) return NotFound();
-
-                    task.CreatedById = original.CreatedById;
-                    task.CreatedAt = original.CreatedAt;
-                    task.UpdatedAt = DateTime.UtcNow;
-                    task.IsDeleted = original.IsDeleted;
-
-                    _context.Update(task);
-                    await _context.SaveChangesAsync();
-
-                    if (original.Status != task.Status)
+                    try
                     {
-                        await _notificationService.CreateTaskStatusChangedNotification(task, original.Status);
-                    }
+                        var original = await _context.Tasks.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
+                        if (original == null)
+                        {
+                            _logger.LogWarning("Task not found for editing: {Id}", id);
+                            return NotFound();
+                        }
 
-                    if (original.AssignedToId != task.AssignedToId && !string.IsNullOrEmpty(task.AssignedToId))
+                        // Validate that AssignedToId exists in the Users table if it's not null
+                        if (!string.IsNullOrEmpty(task.AssignedToId))
+                        {
+                            var userExists = await _context.Users.AnyAsync(u => u.Id == task.AssignedToId);
+                            if (!userExists)
+                            {
+                                _logger.LogWarning("Invalid AssignedToId: {AssignedToId} - User doesn't exist", task.AssignedToId);
+                                ModelState.AddModelError("AssignedToId", "The selected user doesn't exist in the database.");
+                                
+                                var users = _context.Users.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
+                                ViewData["AssignedToId"] = new SelectList(users, "Id", "FullName", task.AssignedToId);
+                                ViewData["Categories"] = GetCategoriesSelectList();
+                                return View(task);
+                            }
+                        }
+
+                        _logger.LogInformation("Updating task: {@Task}", new { 
+                            task.Id, 
+                            task.Title, 
+                            task.Description, 
+                            Status = task.Status.ToString(), 
+                            Priority = task.Priority.ToString(), 
+                            task.DueDate, 
+                            task.AssignedToId,
+                            task.Category,
+                            task.EstimatedHours,
+                            task.ActualHours
+                        });
+
+                        task.CreatedById = original.CreatedById;
+                        task.CreatedAt = original.CreatedAt;
+                        task.UpdatedAt = DateTime.UtcNow;
+                        task.IsDeleted = original.IsDeleted;
+
+                        _context.Update(task);
+                        
+                        try
+                        {
+                            await _context.SaveChangesAsync();
+                            _logger.LogInformation("Task updated successfully: {Id}", task.Id);
+
+                            if (original.Status != task.Status)
+                            {
+                                await _notificationService.CreateTaskStatusChangedNotification(task, original.Status);
+                            }
+
+                            if (original.AssignedToId != task.AssignedToId && !string.IsNullOrEmpty(task.AssignedToId))
+                            {
+                                await _notificationService.CreateTaskAssignedNotification(task);
+                            }
+
+                            return RedirectToAction(nameof(Index));
+                        }
+                        catch (DbUpdateException dbEx)
+                        {
+                            _logger.LogError(dbEx, "Database error updating task {Id}", id);
+                            
+                            if (dbEx.InnerException != null && dbEx.InnerException.Message.Contains("FK_Tasks_AspNetUsers_AssignedToId"))
+                            {
+                                // This is a foreign key constraint error
+                                ModelState.AddModelError("AssignedToId", "The selected user doesn't exist in the database.");
+                                task.AssignedToId = null; // Reset to prevent further errors
+                            }
+                            else
+                            {
+                                ModelState.AddModelError("", $"Database error: {dbEx.Message}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
                     {
-                        await _notificationService.CreateTaskAssignedNotification(task);
+                        _logger.LogError(ex, "Error updating task {Id}", id);
+                        ModelState.AddModelError("", $"Error updating task: {ex.Message}");
                     }
-
-                    return RedirectToAction(nameof(Index));
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "Error updating task {Id}", id);
-                    ModelState.AddModelError("", "Error updating task. Please try again.");
+                    var errors = ModelState
+                        .Where(x => x.Value.Errors.Count > 0)
+                        .Select(x => new { x.Key, x.Value.Errors })
+                        .ToList();
+                        
+                    _logger.LogWarning("Model validation failed for task edit: {@Errors}", errors);
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in Edit action for task {Id}", id);
+                ModelState.AddModelError("", $"An unexpected error occurred: {ex.Message}");
             }
 
             var users = _context.Users.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
@@ -305,6 +391,158 @@ namespace TaskIt.Controllers
             {
                 _logger.LogError(ex, "Error fixing data");
                 return Json(new { Error = ex.Message });
+            }
+        }
+
+        // Add this new action to help diagnose database issues
+        [HttpGet]
+        public async Task<IActionResult> DiagnoseDatabase()
+        {
+            var result = new Dictionary<string, object>();
+            
+            try
+            {
+                // Check for users in the database
+                var users = await _context.Users.ToListAsync();
+                result["TotalUsers"] = users.Count;
+                result["Users"] = users.Select(u => new { 
+                    u.Id, 
+                    u.UserName,
+                    u.Email,
+                    u.FirstName,
+                    u.LastName
+                }).ToList();
+                
+                // Check for tasks
+                var tasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
+                result["TotalTasks"] = tasks.Count;
+                
+                // Check for assigned tasks with invalid user IDs
+                var invalidAssignments = tasks
+                    .Where(t => !string.IsNullOrEmpty(t.AssignedToId) && !users.Any(u => u.Id == t.AssignedToId))
+                    .Select(t => new { 
+                        t.Id, 
+                        t.Title, 
+                        t.AssignedToId
+                    })
+                    .ToList();
+                    
+                result["InvalidAssignments"] = invalidAssignments;
+                result["InvalidAssignmentCount"] = invalidAssignments.Count;
+                
+                // Fix invalid assignments by setting them to null
+                if (invalidAssignments.Any())
+                {
+                    foreach (var task in tasks.Where(t => !string.IsNullOrEmpty(t.AssignedToId) && 
+                                                     !users.Any(u => u.Id == t.AssignedToId)))
+                    {
+                        task.AssignedToId = null;
+                        _context.Update(task);
+                    }
+                    
+                    await _context.SaveChangesAsync();
+                    result["FixedAssignments"] = true;
+                }
+                
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in DiagnoseDatabase");
+                result["Error"] = ex.Message;
+                result["StackTrace"] = ex.StackTrace;
+                return Json(result);
+            }
+        }
+
+        // Add this new action to help fix database schema issues
+        [HttpGet]
+        public async Task<IActionResult> FixDatabaseSchema()
+        {
+            var result = new Dictionary<string, object>();
+            
+            try
+            {
+                // Get SQL connection to run raw SQL
+                var connection = _context.Database.GetDbConnection();
+                await connection.OpenAsync();
+                
+                try
+                {
+                    // Check if any tasks have null CreatedById
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT COUNT(*) FROM \"Tasks\" WHERE \"CreatedById\" IS NULL";
+                        var nullCreatedByCount = Convert.ToInt32(await command.ExecuteScalarAsync());
+                        result["NullCreatedByCount"] = nullCreatedByCount;
+                        
+                        if (nullCreatedByCount > 0)
+                        {
+                            // Fix null CreatedById values
+                            var adminId = await _context.Users.Select(u => u.Id).FirstOrDefaultAsync();
+                            if (!string.IsNullOrEmpty(adminId))
+                            {
+                                using (var updateCommand = connection.CreateCommand())
+                                {
+                                    updateCommand.CommandText = $"UPDATE \"Tasks\" SET \"CreatedById\" = @adminId WHERE \"CreatedById\" IS NULL";
+                                    var param = updateCommand.CreateParameter();
+                                    param.ParameterName = "@adminId";
+                                    param.Value = adminId;
+                                    updateCommand.Parameters.Add(param);
+                                    
+                                    var rowsAffected = await updateCommand.ExecuteNonQueryAsync();
+                                    result["FixedNullCreatedBy"] = rowsAffected;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check if any tasks have invalid AssignedToId
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                            SELECT COUNT(*) 
+                            FROM ""Tasks"" t 
+                            LEFT JOIN ""AspNetUsers"" u ON t.""AssignedToId"" = u.""Id""
+                            WHERE t.""AssignedToId"" IS NOT NULL AND u.""Id"" IS NULL";
+                            
+                        var invalidAssignmentsCount = Convert.ToInt32(await command.ExecuteScalarAsync());
+                        result["InvalidAssignmentsCount"] = invalidAssignmentsCount;
+                        
+                        if (invalidAssignmentsCount > 0)
+                        {
+                            // Fix invalid AssignedToId values by setting them to NULL
+                            using (var updateCommand = connection.CreateCommand())
+                            {
+                                updateCommand.CommandText = @"
+                                    UPDATE ""Tasks"" 
+                                    SET ""AssignedToId"" = NULL
+                                    WHERE ""AssignedToId"" IS NOT NULL AND ""AssignedToId"" NOT IN (SELECT ""Id"" FROM ""AspNetUsers"")";
+                                    
+                                var rowsAffected = await updateCommand.ExecuteNonQueryAsync();
+                                result["FixedInvalidAssignments"] = rowsAffected;
+                            }
+                        }
+                    }
+                    
+                    result["Success"] = true;
+                }
+                finally
+                {
+                    if (connection.State == System.Data.ConnectionState.Open)
+                    {
+                        await connection.CloseAsync();
+                    }
+                }
+                
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fixing database schema");
+                result["Error"] = ex.Message;
+                result["StackTrace"] = ex.StackTrace;
+                return Json(result);
             }
         }
 
