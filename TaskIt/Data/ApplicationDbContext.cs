@@ -18,31 +18,69 @@ namespace TaskIt.Data
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<TaskItem>()
-                .HasOne(t => t.CreatedBy)
-                .WithMany(u => u.CreatedTasks)
-                .HasForeignKey(t => t.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Configure Tasks entity
+            builder.Entity<TaskItem>(entity => 
+            {
+                entity.ToTable("Tasks");
+                
+                entity.HasKey(t => t.Id);
+                
+                entity.Property(t => t.Title)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(t => t.Description)
+                    .HasMaxLength(500);
+                
+                entity.Property(t => t.Status)
+                    .IsRequired()
+                    .HasConversion<int>();
+                
+                entity.Property(t => t.Priority)
+                    .IsRequired()
+                    .HasConversion<int>();
+                
+                entity.Property(t => t.CreatedById)
+                    .IsRequired();
+                
+                entity.HasOne(t => t.CreatedBy)
+                    .WithMany(u => u.CreatedTasks)
+                    .HasForeignKey(t => t.CreatedById)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<TaskItem>()
-                .HasOne(t => t.AssignedTo)
-                .WithMany(u => u.AssignedTasks)
-                .HasForeignKey(t => t.AssignedToId)
-                .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(t => t.AssignedTo)
+                    .WithMany(u => u.AssignedTasks)
+                    .HasForeignKey(t => t.AssignedToId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
-            builder.Entity<Notification>()
-                .HasOne(n => n.User)
-                .WithMany(u => u.Notifications)
-                .HasForeignKey(n => n.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // Configure Notifications entity
+            builder.Entity<Notification>(entity => 
+            {
+                entity.ToTable("Notifications");
+                
+                entity.HasKey(n => n.Id);
+                
+                entity.Property(n => n.Message)
+                    .IsRequired()
+                    .HasMaxLength(200);
+                
+                entity.Property(n => n.Type)
+                    .IsRequired()
+                    .HasConversion<int>();
+                
+                entity.HasOne(n => n.User)
+                    .WithMany(u => u.Notifications)
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<Notification>()
-                .HasOne(n => n.Task)
-                .WithMany(t => t.Notifications)
-                .HasForeignKey(n => n.TaskId)
-                .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(n => n.Task)
+                    .WithMany(t => t.Notifications)
+                    .HasForeignKey(n => n.TaskId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
-            // Restore the global query filter for non-deleted tasks
+            // Query filter for soft delete
             builder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
         }
     }

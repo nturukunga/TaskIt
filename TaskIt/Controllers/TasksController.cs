@@ -101,9 +101,9 @@ namespace TaskIt.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Title,Description,Status,Priority,DueDate,AssignedToId,Category,EstimatedHours")] TaskItem task)
         {
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (ModelState.IsValid)
                 {
                     // Get current user ID with fallbacks
                     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -153,6 +153,18 @@ namespace TaskIt.Controllers
                     _logger.LogInformation("Selected AssignedToId: {AssignedToId}", 
                         task.AssignedToId ?? "null (no user selected)");
                         
+                    _logger.LogInformation("Creating task with properties: {Task}", new {
+                        task.Title,
+                        task.Description,
+                        Status = task.Status.ToString(),
+                        Priority = task.Priority.ToString(),
+                        task.DueDate,
+                        task.CreatedById,
+                        task.AssignedToId,
+                        task.Category,
+                        task.EstimatedHours
+                    });
+                        
                     // Set self as assignee if none selected as a fallback
                     if (string.IsNullOrEmpty(task.AssignedToId))
                     {
@@ -160,37 +172,59 @@ namespace TaskIt.Controllers
                         task.AssignedToId = userId;
                     }
                     
-                    _context.Add(task);
-                    await _context.SaveChangesAsync();
-
-                    _logger.LogInformation("Task created successfully with ID: {Id}", task.Id);
+                    // Add the task to the context
+                    _context.Tasks.Add(task);
                     
-                    // Verify task was actually saved
-                    var savedTask = await _context.Tasks.FindAsync(task.Id);
-                    if (savedTask != null)
+                    try
                     {
-                        _logger.LogInformation("Verified task exists in database");
+                        // Try to save changes
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("Task created successfully with ID: {Id}", task.Id);
+                        
+                        // Verify task was actually saved
+                        var savedTask = await _context.Tasks.FindAsync(task.Id);
+                        if (savedTask != null)
+                        {
+                            _logger.LogInformation("Verified task exists in database");
+                            
+                            // Create notification for assigned user
+                            if (!string.IsNullOrEmpty(task.AssignedToId))
+                            {
+                                await _notificationService.CreateTaskAssignedNotification(task);
+                            }
+                            
+                            return RedirectToAction(nameof(Index));
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Task appears to be missing after save!");
+                            ModelState.AddModelError("", "Task was created but could not be retrieved. Please check the task list.");
+                        }
                     }
-                    else
+                    catch (DbUpdateException ex)
                     {
-                        _logger.LogWarning("Task appears to be missing after save!");
+                        _logger.LogError(ex, "Database error creating task. Details: {Message}", ex.InnerException?.Message ?? ex.Message);
+                        ModelState.AddModelError("", $"Database error: {ex.InnerException?.Message ?? ex.Message}");
                     }
-
-                    // Create notification for assigned user
-                    if (!string.IsNullOrEmpty(task.AssignedToId))
-                    {
-                        await _notificationService.CreateTaskAssignedNotification(task);
-                    }
-
-                    return RedirectToAction(nameof(Index));
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "Error creating task");
-                    ModelState.AddModelError("", "Error creating task. Please try again.");
+                    // Log model validation errors
+                    var errors = ModelState
+                        .Where(x => x.Value.Errors.Count > 0)
+                        .Select(x => new { x.Key, x.Value.Errors })
+                        .ToList();
+                        
+                    _logger.LogWarning("Model validation failed: {@Errors}", errors);
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error creating task");
+                ModelState.AddModelError("", $"Error creating task: {ex.Message}");
+            }
 
+            // If we get here, something failed, redisplay form
             var users = _context.Users.OrderBy(u => u.LastName).ThenBy(u => u.FirstName);
             ViewData["AssignedToId"] = new SelectList(users, "Id", "FullName", task.AssignedToId);
             ViewData["Categories"] = GetCategoriesSelectList();
@@ -216,7 +250,11 @@ namespace TaskIt.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Status,Priority,DueDate,AssignedToId,Category,EstimatedHours,ActualHours")] TaskItem task)
         {
-            if (id != task.Id) return NotFound();
+            if (id != task.Id)
+            {
+                _logger.LogWarning("ID mismatch in Edit: route ID {RouteId} != form ID {FormId}", id, task.Id);
+                return NotFound();
+            }
 
             try
             {
@@ -224,7 +262,10 @@ namespace TaskIt.Controllers
                 {
                     try
                     {
-                        var original = await _context.Tasks.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
+                        // Get the original task
+                        var original = await _context.Tasks.IgnoreQueryFilters().AsNoTracking()
+                            .FirstOrDefaultAsync(t => t.Id == id);
+                        
                         if (original == null)
                         {
                             _logger.LogWarning("Task not found for editing: {Id}", id);
@@ -260,18 +301,28 @@ namespace TaskIt.Controllers
                             task.ActualHours
                         });
 
+                        // Keep original metadata
                         task.CreatedById = original.CreatedById;
                         task.CreatedAt = original.CreatedAt;
                         task.UpdatedAt = DateTime.UtcNow;
                         task.IsDeleted = original.IsDeleted;
 
-                        _context.Update(task);
+                        // Detach any existing entity with the same ID
+                        var existingEntry = _context.Entry(original);
+                        if (existingEntry.State != EntityState.Detached)
+                        {
+                            existingEntry.State = EntityState.Detached;
+                        }
+
+                        // Mark entity as modified
+                        _context.Entry(task).State = EntityState.Modified;
                         
                         try
                         {
                             await _context.SaveChangesAsync();
                             _logger.LogInformation("Task updated successfully: {Id}", task.Id);
 
+                            // Send notifications if needed
                             if (original.Status != task.Status)
                             {
                                 await _notificationService.CreateTaskStatusChangedNotification(task, original.Status);
@@ -284,19 +335,33 @@ namespace TaskIt.Controllers
 
                             return RedirectToAction(nameof(Index));
                         }
+                        catch (DbUpdateConcurrencyException ex)
+                        {
+                            if (!await TaskItemExists(task.Id))
+                            {
+                                _logger.LogWarning("Task not found during concurrency exception: {Id}", id);
+                                return NotFound();
+                            }
+                            else
+                            {
+                                _logger.LogError(ex, "Concurrency error updating task {Id}", id);
+                                ModelState.AddModelError("", "The task was modified by another user. Please reload and try again.");
+                            }
+                        }
                         catch (DbUpdateException dbEx)
                         {
-                            _logger.LogError(dbEx, "Database error updating task {Id}", id);
+                            _logger.LogError(dbEx, "Database error updating task {Id}. Error: {Error}", 
+                                id, dbEx.InnerException?.Message ?? dbEx.Message);
                             
                             if (dbEx.InnerException != null && dbEx.InnerException.Message.Contains("FK_Tasks_AspNetUsers_AssignedToId"))
                             {
-                                // This is a foreign key constraint error
+                                // Foreign key constraint error
                                 ModelState.AddModelError("AssignedToId", "The selected user doesn't exist in the database.");
                                 task.AssignedToId = null; // Reset to prevent further errors
                             }
                             else
                             {
-                                ModelState.AddModelError("", $"Database error: {dbEx.Message}");
+                                ModelState.AddModelError("", $"Database error: {dbEx.InnerException?.Message ?? dbEx.Message}");
                             }
                         }
                     }
@@ -566,6 +631,11 @@ namespace TaskIt.Controllers
         {
             var categories = new[] { "Development", "Design", "Research", "Testing", "Documentation", "Maintenance", "Meeting", "Other" };
             return new SelectList(categories);
+        }
+
+        private async Task<bool> TaskItemExists(int id)
+        {
+            return await _context.Tasks.IgnoreQueryFilters().AnyAsync(e => e.Id == id);
         }
     }
 }

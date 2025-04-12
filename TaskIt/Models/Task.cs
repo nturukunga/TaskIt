@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace TaskIt.Models
 {
     // Renamed to TaskItem to avoid conflict with System.Threading.Tasks.Task
+    [Table("Tasks")]
     public class TaskItem
     {
         [Key]
