@@ -1,6 +1,6 @@
 @model PaginatedList<TaskItem>
 @{
-    ViewData["Title"] = "Tasks";
+    ViewData["CurrentSort"] = ViewData["CurrentSort"] ?? "";
 }
 
 <div class="container">
