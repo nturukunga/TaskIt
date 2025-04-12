@@ -42,8 +42,8 @@ namespace TaskIt.Data
                 .HasForeignKey(n => n.TaskId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Comment out the global query filter temporarily for debugging
-            // builder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
+            // Restore the global query filter for non-deleted tasks
+            builder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
         }
     }
 }

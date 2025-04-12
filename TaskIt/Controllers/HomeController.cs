@@ -33,7 +33,7 @@ namespace TaskIt.Controllers
         public async Task<IActionResult> Dashboard()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation($"Dashboard - Current user ID: {userId}");
+            _logger.LogInformation("Dashboard for user ID: {UserId}", userId);
             
             try
             {
@@ -41,31 +41,31 @@ namespace TaskIt.Controllers
                 var allUsers = await _context.Users.ToListAsync();
                 foreach (var user in allUsers)
                 {
-                    _logger.LogInformation($"User: {user.UserName}, ID: {user.Id}");
+                    _logger.LogInformation("User: {UserName}, ID: {UserId}", user.UserName, user.Id);
                 }
                 
-                // DEBUG: Log all tasks directly from database to see what's happening
+                // Get all tasks directly from database
                 var allTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
-                _logger.LogInformation($"Total tasks in database: {allTasks.Count}");
+                _logger.LogInformation("Total tasks in database: {Count}", allTasks.Count);
                 
-                // EMERGENCY FIX: Show all tasks regardless of association
+                // Get recent tasks
                 var recentTasks = await _context.Tasks.IgnoreQueryFilters()
                     .OrderByDescending(t => t.CreatedAt)
                     .Take(5)
                     .ToListAsync();
 
-                // Force some stats to have counts to show the UI is working
+                // Prepare task statistics with null checks
                 var taskStatistics = new
                 {
                     TotalTasks = allTasks.Count,
                     CompletedTasks = allTasks.Count(t => t.Status == TaskItemStatus.Completed),
                     PendingTasks = allTasks.Count(t => t.Status == TaskItemStatus.ToDo),
                     InProgressTasks = allTasks.Count(t => t.Status == TaskItemStatus.InProgress),
-                    OverdueTasks = allTasks.Count(t => t.DueDate < DateTime.Today && t.Status != TaskItemStatus.Completed),
+                    OverdueTasks = allTasks.Count(t => t.DueDate.HasValue && t.DueDate.Value < DateTime.Today && t.Status != TaskItemStatus.Completed),
                     HighPriorityTasks = allTasks.Count(t => t.Priority == TaskPriority.High || t.Priority == TaskPriority.Critical)
                 };
 
-                // Get the most recent notifications for the user
+                // Get recent notifications
                 var recentNotifications = await _context.Notifications
                     .Where(n => n.UserId == userId)
                     .OrderByDescending(n => n.CreatedAt)

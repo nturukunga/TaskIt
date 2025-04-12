@@ -1,6 +1,7 @@
 @model PaginatedList<TaskItem>
 @{
     ViewData["CurrentSort"] = ViewData["CurrentSort"] ?? "";
+    var currentSort = ViewData["CurrentSort"]?.ToString() ?? "";
 }
 
 <div class="container">
@@ -35,11 +36,11 @@
                             <th>
                                 <a asp-action="Index" asp-route-sortOrder="@ViewData["TitleSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
                                     Title
-                                    @if (ViewData["CurrentSort"].ToString() == "")
+                                    @if (currentSort == "")
                                     {
                                         <i class="bi bi-arrow-down-short"></i>
                                     }
-                                    else if (ViewData["CurrentSort"].ToString() == "title_desc")
+                                    else if (currentSort == "title_desc")
                                     {
                                         <i class="bi bi-arrow-up-short"></i>
                                     }
@@ -48,11 +49,11 @@
                             <th>
                                 <a asp-action="Index" asp-route-sortOrder="@ViewData["StatusSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
                                     Status
-                                    @if (ViewData["CurrentSort"].ToString() == "status")
+                                    @if (currentSort == "status")
                                     {
                                         <i class="bi bi-arrow-down-short"></i>
                                     }
-                                    else if (ViewData["CurrentSort"].ToString() == "status_desc")
+                                    else if (currentSort == "status_desc")
                                     {
                                         <i class="bi bi-arrow-up-short"></i>
                                     }
@@ -61,11 +62,11 @@
                             <th>
                                 <a asp-action="Index" asp-route-sortOrder="@ViewData["PrioritySortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
                                     Priority
-                                    @if (ViewData["CurrentSort"].ToString() == "priority")
+                                    @if (currentSort == "priority")
                                     {
                                         <i class="bi bi-arrow-down-short"></i>
                                     }
-                                    else if (ViewData["CurrentSort"].ToString() == "priority_desc")
+                                    else if (currentSort == "priority_desc")
                                     {
                                         <i class="bi bi-arrow-up-short"></i>
                                     }
@@ -74,11 +75,11 @@
                             <th>
                                 <a asp-action="Index" asp-route-sortOrder="@ViewData["DueDateSortParm"]" asp-route-currentFilter="@ViewData["CurrentFilter"]">
                                     Due Date
-                                    @if (ViewData["CurrentSort"].ToString() == "duedate")
+                                    @if (currentSort == "duedate")
                                     {
                                         <i class="bi bi-arrow-down-short"></i>
                                     }
-                                    else if (ViewData["CurrentSort"].ToString() == "duedate_desc")
+                                    else if (currentSort == "duedate_desc")
                                     {
                                         <i class="bi bi-arrow-up-short"></i>
                                     }
