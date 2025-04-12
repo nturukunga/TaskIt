@@ -36,6 +36,15 @@ namespace TaskIt.Controllers
             
             try
             {
+                // DEBUG: Log all tasks directly from database to see what's happening
+                var allTasks = await _context.Tasks.IgnoreQueryFilters().ToListAsync();
+                _logger.LogInformation($"User ID: {userId}");
+                _logger.LogInformation($"Total tasks in database: {allTasks.Count}");
+                foreach (var task in allTasks)
+                {
+                    _logger.LogInformation($"Task ID: {task.Id}, Title: {task.Title}, CreatedById: {task.CreatedById}, AssignedToId: {task.AssignedToId}, IsDeleted: {task.IsDeleted}");
+                }
+                
                 // Get task statistics for the authenticated user
                 var taskStatistics = new
                 {
@@ -78,6 +87,29 @@ namespace TaskIt.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+        
+        [Authorize]
+        public async Task<IActionResult> DiagnoseAllTasks()
+        {
+            try
+            {
+                // Get all tasks from the database with no filters
+                var allTasks = await _context.Tasks.IgnoreQueryFilters()
+                    .Include(t => t.AssignedTo)
+                    .Include(t => t.CreatedBy)
+                    .ToListAsync();
+                
+                ViewBag.AllTasks = allTasks;
+                ViewBag.CurrentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving tasks for diagnostics");
+                return View("Error", new ErrorViewModel { ErrorMessage = "Error retrieving tasks for diagnostics." });
+            }
         }
     }
 }

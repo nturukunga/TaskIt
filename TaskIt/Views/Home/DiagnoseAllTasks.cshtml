@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Task Diagnostics";
+    var allTasks = ViewBag.AllTasks;
+    var currentUserId = ViewBag.CurrentUserId;
+}
+
+<div class="container">
+    <h1>Task Diagnostics</h1>
+    <p class="text-danger">Current User ID: @currentUserId</p>
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">All Tasks in Database (Ignoring Query Filters)</h5>
+        </div>
+        <div class="card-body">
+            <p>Total tasks: @(allTasks?.Count ?? 0)</p>
+            
+            @if (allTasks != null && allTasks.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>CreatedById</th>
+                                <th>AssignedToId</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>IsDeleted</th>
+                                <th>CreatedAt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in allTasks)
+                            {
+                                var isForCurrentUser = task.CreatedById == currentUserId || task.AssignedToId == currentUserId;
+                                <tr class="@(isForCurrentUser ? "table-primary" : "")">
+                                    <td>@task.Id</td>
+                                    <td>@task.Title</td>
+                                    <td>@task.CreatedById @(task.CreatedById == currentUserId ? "(YOU)" : "")</td>
+                                    <td>@(task.AssignedToId ?? "None") @(task.AssignedToId == currentUserId ? "(YOU)" : "")</td>
+                                    <td>@task.Status</td>
+                                    <td>@task.Priority</td>
+                                    <td>@task.IsDeleted</td>
+                                    <td>@task.CreatedAt.ToString("g")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    No tasks found in database.
+                </div>
+            }
+        </div>
+    </div>
+</div> 
