@@ -18,7 +18,6 @@ namespace TaskIt.Data
         {
             base.OnModelCreating(builder);
 
-            // Configure Task relationships
             builder.Entity<TaskItem>()
                 .HasOne(t => t.CreatedBy)
                 .WithMany(u => u.CreatedTasks)
@@ -31,7 +30,6 @@ namespace TaskIt.Data
                 .HasForeignKey(t => t.AssignedToId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Configure Notification relationships
             builder.Entity<Notification>()
                 .HasOne(n => n.User)
                 .WithMany(u => u.Notifications)
@@ -44,7 +42,6 @@ namespace TaskIt.Data
                 .HasForeignKey(n => n.TaskId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Configure global query filters
             builder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
         }
     }

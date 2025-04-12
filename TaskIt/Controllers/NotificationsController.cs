@@ -79,7 +79,6 @@ namespace TaskIt.Controllers
             }
         }
 
-        // POST: Notifications/MarkAllAsRead
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkAllAsRead()
@@ -109,7 +108,6 @@ namespace TaskIt.Controllers
             }
         }
 
-        // GET: Notifications/GetUnreadCount
         [HttpGet]
         public async Task<IActionResult> GetUnreadCount()
         {
@@ -129,7 +127,6 @@ namespace TaskIt.Controllers
             }
         }
 
-        // GET: Notifications/GetRecentNotifications
         [HttpGet]
         public async Task<IActionResult> GetRecentNotifications()
         {
