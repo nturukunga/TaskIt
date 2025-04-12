@@ -38,17 +38,17 @@ namespace TaskIt.Controllers
                 // Get task statistics for the authenticated user
                 var taskStatistics = new
                 {
-                    TotalTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId),
-                    CompletedTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId && t.Status == TaskItemStatus.Completed),
-                    PendingTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId && t.Status == TaskItemStatus.ToDo),
-                    InProgressTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId && t.Status == TaskItemStatus.InProgress),
-                    OverdueTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId && t.DueDate < DateTime.Today && t.Status != TaskItemStatus.Completed),
-                    HighPriorityTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId && (t.Priority == TaskPriority.High || t.Priority == TaskPriority.Critical))
+                    TotalTasks = await _context.Tasks.CountAsync(t => t.AssignedToId == userId || t.CreatedById == userId),
+                    CompletedTasks = await _context.Tasks.CountAsync(t => (t.AssignedToId == userId || t.CreatedById == userId) && t.Status == TaskItemStatus.Completed),
+                    PendingTasks = await _context.Tasks.CountAsync(t => (t.AssignedToId == userId || t.CreatedById == userId) && t.Status == TaskItemStatus.ToDo),
+                    InProgressTasks = await _context.Tasks.CountAsync(t => (t.AssignedToId == userId || t.CreatedById == userId) && t.Status == TaskItemStatus.InProgress),
+                    OverdueTasks = await _context.Tasks.CountAsync(t => (t.AssignedToId == userId || t.CreatedById == userId) && t.DueDate < DateTime.Today && t.Status != TaskItemStatus.Completed),
+                    HighPriorityTasks = await _context.Tasks.CountAsync(t => (t.AssignedToId == userId || t.CreatedById == userId) && (t.Priority == TaskPriority.High || t.Priority == TaskPriority.Critical))
                 };
 
-                // Get the most recent tasks assigned to the user
+                // Get the most recent tasks assigned to or created by the user
                 var recentTasks = await _context.Tasks
-                    .Where(t => t.AssignedToId == userId)
+                    .Where(t => t.AssignedToId == userId || t.CreatedById == userId)
                     .OrderByDescending(t => t.CreatedAt)
                     .Take(5)
                     .ToListAsync();
